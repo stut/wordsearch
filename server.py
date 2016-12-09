@@ -12,41 +12,42 @@ app = Flask(__name__.split('.')[0])
 
 with open('words.json', encoding='utf-8', mode='r') as f:
     all_words = json.load(f)
-wordlengths = []
+word_lengths = []
 for word in all_words:
-    if len(word) not in wordlengths:
-        wordlengths.append(len(word))
-wordlengths.sort()
+    if len(word) not in word_lengths:
+        word_lengths.append(len(word))
+word_lengths.sort()
 with open('cats.json', encoding='utf-8', mode='r') as f:
     all_cats = json.load(f)
-catlist = list(all_cats.keys())
-catlist.sort()
+cat_list = list(all_cats.keys())
+cat_list.sort()
+
 
 @app.route('/')
 def index():
-    return render_template('index.html', wordlengths=wordlengths, catlist=catlist, words=do_get_words())
+    return render_template('index.html', wordlengths=word_lengths, catlist=cat_list, words=do_get_words())
+
 
 @app.route('/cats')
 def get_cats():
-    return jsonify(catlist)
+    return jsonify(cat_list)
+
 
 def do_get_words(cat=None, count=10, minlen=1, maxlen=10):
     retval = []
     maxtries = count * 1000
-    while (len(retval) < count):
+    while len(retval) < count:
         if cat:
             selected = random.choice(all_cats[cat])
         else:
             selected = random.choice(all_words)
-        if len(selected) >= minlen and len(selected) <= maxlen and selected not in retval:
+        if len(selected) in range(minlen, maxlen+1) and selected not in retval:
             retval.append(selected)
         else:
             maxtries -= 1
             if maxtries <= 0:
-                print('Searching...')
                 for word in all_words:
-                    if len(word) >= minlen and len(word) <= maxlen and word not in retval:
-                        print('Found %s' % word)
+                    if len(word) in range(minlen, maxlen+1) and word not in retval:
                         retval.append(word)
                         if len(retval) == count:
                             break
@@ -54,8 +55,9 @@ def do_get_words(cat=None, count=10, minlen=1, maxlen=10):
                     return retval
     return retval
 
+
 @app.route('/words')
-def get_words(cat=None):
+def get_words():
     cat = request.args.get('cat', None)
     count = int(request.args.get('count', 10))
     minlen = int(request.args.get('minlen', 1))
@@ -76,7 +78,7 @@ def get_words(cat=None):
         return jsonify({
             "error": "Max length must be greater than min length"
         })
-    if cat and cat not in catlist:
+    if cat and cat not in cat_list:
         return jsonify({
             "error": "Unknown category"
         })
@@ -86,6 +88,7 @@ def get_words(cat=None):
             "error": "Unable to satisfy requirements"
         })
     return jsonify(retval)
+
 
 @app.route('/create', methods=['POST'])
 def create():
@@ -106,10 +109,9 @@ def create():
         if width > 100 or height > 100:
             raise Exception('Maximum of 100 rows and columns!')
         puzzle = {
-            "grid": WordSearch.generate(width, height, words, format='text'),
+            "grid": WordSearch.generate(width, height, words, fmt='text'),
             "words": '\n'.join(words)
         }
-        #print(puzzle)
         filename = '%s-%04d.txt' % (time.time(), random.randint(1, 9999))
         with open(os.path.join(generated_dir, filename), 'w') as f:
             f.write(puzzle['grid'])
@@ -120,7 +122,6 @@ def create():
         error = {
           "error": str(e)
         }
-        #print(error)
         return jsonify(error)
 
 if __name__ == '__main__':
