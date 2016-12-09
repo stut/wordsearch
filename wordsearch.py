@@ -79,34 +79,28 @@ class WordSearch:
             return -1
         return y * self.width + x
 
-    def getPossibleStartingPoints(self, word):
-        l = len(word)
-        possible_xs = []
-        for x in range(self.width):
-            if x + l < self.width or x - l >= 0:
-                possible_xs.append(x)
-        possible_ys = []
-        for y in range(self.height):
-            if y + l < self.height or y - l >= 0:
-                possible_ys.append(y)
+    def get_possible_starting_points(self, this_word):
+        l = len(this_word)
+        possible_xs = range(0, self.width)
+        possible_ys = range(0, self.height)
         starts = []
         for x in possible_xs:
             for y in possible_ys:
-                if y - l >= 0:
+                if y - l + 1 >= 0:
                     starts.append([x, y, 'n'])
                     if x + l < self.width:
                         starts.append([x, y, 'ne'])
                     if x - l >= 0:
                         starts.append([x, y, 'nw'])
-                if x + l < self.width:
+                if x + l <= self.width:
                     starts.append([x, y, 'e'])
-                if x - l >= 0:
+                if x - l + 1 >= 0:
                     starts.append([x, y, 'w'])
-                if y + l < self.height:
+                if y + l <= self.height:
                     starts.append([x, y, 's'])
-                    if x + l < self.width:
+                    if x + l - 1 < self.width:
                         starts.append([x, y, 'se'])
-                    if x - l >= 0:
+                    if x - l + 1 >= 0:
                         starts.append([x, y, 'sw'])
         return starts
 
