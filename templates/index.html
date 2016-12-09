@@ -58,6 +58,7 @@
         <hr />
         <pre id="puzzle"></pre>
         <pre id="wordlist"></pre>
+        <pre id="url"></pre>
         <script
           src="https://code.jquery.com/jquery-3.1.1.min.js"
           integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
@@ -116,6 +117,7 @@
 	                      } else {
                             $('#puzzle').text(data.grid);
                             $('#wordlist').text(data.words);
+                            $('#url').text(data.url);
                         }
                     });;
 

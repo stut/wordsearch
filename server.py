@@ -1,3 +1,4 @@
+from hashlib import sha1
 import json
 import os
 import random
@@ -108,12 +109,14 @@ def create():
             raise Exception('Please specify a valid grid size!')
         if width > 100 or height > 100:
             raise Exception('Maximum of 100 rows and columns!')
+        filename = '%s-%04d' % (time.time(), random.randint(1, 9999))
+        filename = sha1(filename.encode('utf-8')).hexdigest()
         puzzle = {
             "grid": WordSearch.generate(width, height, words, fmt='text'),
-            "words": '\n'.join(words)
+            "words": '\n'.join(words),
+            "url": 'http://wordsearch.stut.net/r/%s' % filename
         }
-        filename = '%s-%04d.txt' % (time.time(), random.randint(1, 9999))
-        with open(os.path.join(generated_dir, filename), 'w') as f:
+        with open(os.path.join(generated_dir, '%s.txt' % filename), 'w') as f:
             f.write(puzzle['grid'])
             f.write('\n')
             f.write(puzzle['words'])
