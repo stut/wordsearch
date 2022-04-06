@@ -90,3 +90,6 @@ ENV/
 
 # Project-specific
 /generated
+/solutions
+
+.idea

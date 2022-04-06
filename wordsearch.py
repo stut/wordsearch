@@ -5,6 +5,9 @@ import random
 class WordSearch:
     @staticmethod
     def generate(width, height, word_list, fmt='json', seed_random=True):
+        """
+        Generates a puzzle and returns it in the requested format (json or text).
+        """
         if seed_random:
             random.seed()
         the_words = list(word_list)
@@ -47,7 +50,37 @@ class WordSearch:
         return ws.as_json()
 
     @staticmethod
+    def solve(puzzle_text, word_list=[]):
+        """
+        Solves a puzzle. If the supplied word_list is empty it is assumed
+        that puzzle_text is in the format outputted by the as_text method
+        followed by a blank line and then the word list, one word per
+        line.
+        """
+        if len(word_list) == 0:
+            tmp = puzzle_text
+            puzzle_text = ''
+            parsing_words = False
+            for line in tmp.split('\n'):
+                if parsing_words:
+                    if len(line.strip()) > 0:
+                        word_list.append(line.strip())
+                else:
+                    if len(line.strip()) > 0:
+                        puzzle_text = "%s\n%s" % (puzzle_text, line.strip())
+                    else:
+                        parsing_words = True
+        res = {}
+        ws = WordSearch(puzzle_text=puzzle_text)
+        for this_word in word_list:
+            res[this_word] = ws.find(this_word)
+        return res
+
+    @staticmethod
     def move(x, y, direction):
+        """
+        Moves the provided coordinates one step in the given direction.
+        """
         if direction == 'n':
             return [x, y-1]
         elif direction == 'ne':
@@ -68,25 +101,55 @@ class WordSearch:
 
     UNOCCUPIED = '#'
 
-    def __init__(self, width, height):
-        self.width = width
-        self.height = height
+    def __init__(self, width=0, height=0, puzzle_text=None):
+        """
+        Initialise a WordSearch puzzle. If puzzle_text is not None the other
+        parameters will be ignored and the puzzle will be created from the
+        contents.
+        """
+        if puzzle_text:
+            lines = puzzle_text.strip().split('\n')
+            self.width = len(lines[0].strip().replace(' ', ''))
+            self.height = len(lines)
+            for idx in range(self.height):
+                lines[idx] = lines[idx].strip().replace(' ', '')
+                if len(lines[idx]) == width:
+                    raise Exception('All lines in the puzzle must be the same length')
+        elif width < 1 or height < 1:
+            raise Exception('Dimensions invalid and no puxxle text provided')
+        else:
+            self.width = width
+            self.height = height
+
         self.grid = []
-        for x in range(height):
-            for y in range(width):
+        for y in range(self.height):
+            for x in range(self.width):
                 self.grid.append(self.UNOCCUPIED)
 
-    def as_text(self):
+        if puzzle_text:
+            for y in range(self.height):
+                for x in range(self.width):
+                    self.grid[self.idx(x, y)] = lines[y][x].upper()
+
+    def as_text(self, with_spaces=True):
+        """
+        Render the puzzle as text.
+        """
         retval = ''
         idx = 0
         for c in self.grid:
-            retval += c + ' '
+            retval += c
+            if with_spaces:
+                retval += ' '
             idx += 1
             if not idx % self.width:
-                retval += "\n"
+                retval = "%s\n" % retval.strip()
         return retval
 
     def as_json(self):
+        """
+        Return the puzzle in JSON format (2-dimensional array).
+        """
         retval = []
         idx = 0
         for x in range(self.height):
@@ -96,12 +159,49 @@ class WordSearch:
                 idx += 1
         return json.dumps(retval)
 
+    def find(self, w):
+        """
+        Attempt to find the location of a word in the puzzle.
+        If found returns an array of [x, y, direction].
+        If not found returns None.
+        """
+        w = w.upper()
+        first_letter = w[0]
+        for y in range(self.height):
+            for x in range(self.width):
+                if self.grid[self.idx(x, y)] == first_letter:
+                    for direction in ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw']:
+                        current_letter = 1
+                        current_x = x
+                        current_y = y
+                        found = True
+                        while found and current_letter < len(w):
+                            (current_x, current_y) = self.move(current_x, current_y, direction)
+                            if current_x < 0 or current_x >= self.width or current_y < 0 or current_y >= self.height:
+                                found = False
+                                break
+                            if not self.grid[self.idx(current_x, current_y)] == w[current_letter]:
+                                found = False
+                            else:
+                                current_letter += 1
+                        if found:
+                            return [x + 1, y + 1, direction]
+        return None
+
     def idx(self, x, y):
+        """
+        Translates x and y coordinates to an index in the grid array.
+        """
         if x < 0 or x >= self.width or y < 0 or y >= self.height:
             return -1
         return y * self.width + x
 
     def get_possible_starting_points(self, this_word):
+        """
+        Given a word find all possible start coordinates. This method
+        essentially gives every coordinate+direction combination in the grid
+        where the word would fit, ignoring the contents of the grid.
+        """
         l = len(this_word)
         possible_xs = range(0, self.width)
         possible_ys = range(0, self.height)
@@ -127,6 +227,11 @@ class WordSearch:
         return starts
 
     def place(self, word, start):
+        """
+        Attempt to place a word at the given start coordinates. The start
+        coordinates must include the direction in the format
+        [x, y, direction].
+        """
         x, y, direction = start
         fits = True
         for c in word:
@@ -143,6 +248,9 @@ class WordSearch:
         return fits
 
     def fill_gaps(self):
+        """
+        Fills all unoccupied spaces in the grid with random letters.
+        """
         for i in range(len(self.grid)):
             if self.grid[i] == self.UNOCCUPIED:
                 self.grid[i] = random.choice('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
